@@ -14,3 +14,11 @@ mongo3:27017   SECONDARY    saúde: 1
 * En este caso observamos que se ha decidio mediante votación que mongo1 sea el primario y se han quedado como secundarios mongo2 y 3
 * Al comparar los dos archivos .yaml observamos lo siguiente :
     * df
+
+
+
+* 
+```
+rs0 [primary] albergues> db.fichas.countDocuments()
+6
+```
