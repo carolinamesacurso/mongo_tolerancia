@@ -95,7 +95,12 @@ rs0 [primary] albergues> db.fichas.find().explain().serverInfo.host
 rs0 [primary] albergues>
 ```
 
-* 
+* Conclusión de pasos anteriores:
+    * Al intentar realizar una operación de escritura en un nodo secundario nos salta un error , ya que los nodo secundarios solo son de lectura 
+    * Por eso al intentar realizar una lectura si que nos muestra un resultado positivo
+    * Al conectarnos al replica set este muestra que por defecto las lecturas van siempre al primario , indicandonos esto con su id correspondiente .
+    * Después de declarar un nuevo nodo secundario como preferente a la hora de las lecturas , este nos muestra un cambio de id a la hora de consultar la misma información
+    *
 
 rs0 [direct: secondary] test>
 |  db.fichas.insertOne( {
