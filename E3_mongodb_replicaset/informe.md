@@ -169,7 +169,7 @@ rs0 [direct: secondary] albergues> db.fichas.findOne({nome:'Albergue prueba 4'})
   opinions: [ { autor: 'M.', nota: 2, texto: 'Moi limpo e tranquilo' } ]
 }
 ```
-
+* Tabla
 ## Paso 5. Caen dos nodos
 * Paramos dos nodos
 ```
@@ -283,4 +283,5 @@ Current Mongosh Log ID: 6aede5c579c08d4124e712a7
     * Con este proceso podemos arreglar que existan datos que se pierdan ya que se confirma cuando tiene la mayoría de votos, no cuando solo el primario lo guarda
 
 * Sistema de reservas:
-    * En el caso de las fichas utilizaríamos los nodos secundarios, esto debido a que son datos que aunque tengan diferentes estructuras no suelen cambiar constantemente 
+    * En el caso de las fichas utilizaríamos los nodos secundarios, esto debido a que son datos que aunque tengan diferentes estructuras no suelen cambiar constantemente asi que sería menos probable tener una lectura desincronizada
+    * Pero a la hora de las plazas , al ser unos datos que van a cambiar constantemente debido a que están creados para ellos , utilizaríamos el nodo primario ya que en el se realizan las escrituras y tendrán antes las lecturas más actualizadas primero. 
