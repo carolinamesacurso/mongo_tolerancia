@@ -100,7 +100,177 @@ rs0 [primary] albergues>
     * Por eso al intentar realizar una lectura si que nos muestra un resultado positivo
     * Al conectarnos al replica set este muestra que por defecto las lecturas van siempre al primario , indicandonos esto con su id correspondiente .
     * Después de declarar un nuevo nodo secundario como preferente a la hora de las lecturas , este nos muestra un cambio de id a la hora de consultar la misma información
-    *
+    * Como inconveniente de leer de lo secundarios tenemos que podemos estar realizando operaciones con datos atrasados 
+    * Como ventaja podemos concluir que así quitamos carga de operaciones al nodo primario , repartiendolo entre varios nodos.
+
+
+## Paso 4 . Cae el primario
+* Paramos el nodo primario 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose pause mongo1
+[+] pause 1/1
+ ✔ Container e3-mongodb-mongo1-1 Paused     
+```
+
+* Ejecutamos estado.js desde otro nodo 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo2 mongosh --quiet
+/scripts/estado.js
+mongo1:27017   (not reachable/healthy) saúde: 0
+mongo2:27017   SECONDARY    saúde: 1
+mongo3:27017   PRIMARY      saúde: 1
+```
+* Inserta una ficha nueva en el replica set
+```
+docker compose exec mongo2 mongosh "mongodb://mongo1,mongo2,mongo3/?replicaSet=rs0"
+
+rs0 [primary] test> use albergues
+switched to db albergues
+rs0 [primary] albergues> db.fichas.insertOne( {
+|     albergue_id: 10, nome: "Albergue prueba 4", concello: "prueba", camino: "caminoprueba",
+|     prazas: 22, servizos: ["cociña", "wifi"],
+|     horario: { apertura: "13:00", peche: "22:30" }, admite_cans: false,
+|     opinions: [{ autor: "M.", nota: 2, texto: "Moi limpo e tranquilo" }]
+|   }
+| )
+{
+  acknowledged: true,
+  insertedId: ObjectId('6aedd9363dd92e4e7d679c7e')
+}
+```
+* Si funciona , esto debido a que al tener un nuevo primario podemos seguir realizando operaciones de escritura en este.
+
+* Arrancar nodo parado 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose unpause mongo1
+[+] unpause 1/1
+ ✔ Container e3-mongodb-mongo1-1 Unpaused  
+```
+* Vemos que al reanudar la actividad del nodo mongo 1, este vuelve como uno secundario 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo1 mongosh --quiet /scripts/estado.js
+mongo1:27017   SECONDARY    saúde: 1
+mongo2:27017   SECONDARY    saúde: 1
+mongo3:27017   PRIMARY      saúde: 1
+```
+* Y vemos que el nuevo secundario tiene la ficha nueva , esto ya que ha vuelto como secundario del nuevo primario actualizado
+```
+rs0 [direct: secondary] albergues> db.fichas.findOne({nome:'Albergue prueba 4'})
+{
+  _id: ObjectId('6aedd9363dd92e4e7d679c7e'),
+  albergue_id: 10,
+  nome: 'Albergue prueba 4',
+  concello: 'prueba',
+  camino: 'caminoprueba',
+  prazas: 22,
+  servizos: [ 'cociña', 'wifi' ],
+  horario: { apertura: '13:00', peche: '22:30' },
+  admite_cans: false,
+  opinions: [ { autor: 'M.', nota: 2, texto: 'Moi limpo e tranquilo' } ]
+}
+```
+
+## Paso 5. Caen dos nodos
+* Paramos dos nodos
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose pause mongo2 mongo3
+[+] pause 2/2
+ ✔ Container e3-mongodb-mongo2-1 Paused                                                                                    0.0s
+ ✔ Container e3-mongodb-mongo3-1 Paused 
+```
+* Consultar estado desde mongo 1, comprobando que no existe primario 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$  docker compose exec mongo1 mongosh --quiet /scripts/estado.js
+mongo1:27017   SECONDARY    saúde: 1
+mongo2:27017   (not reachable/healthy) saúde: 0
+mongo3:27017   (not reachable/healthy) saúde: 0
+```
+* Intentar insertar nueva ficha al replica set y al nodo separadamente
+    * Replica set , la cual no nos permite conectarnos a esta ya que el cliente pregunta quien es el primario a los nodos pero aún no existe 1 establecido 
+```
+    (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo1 mongosh "mongodb://mongo1,mongo2,mongo3/?replicaSet=rs0"
+Current Mongosh Log ID: 6aedde29d6efb60b2aa6f8fb
+Connecting to:          mongodb://mongo1,mongo2,mongo3/?replicaSet=rs0&appName=mongosh+2.14.0
+MongoServerSelectionError: Server selection timed out after 30000 ms
+```
+
+* Nodo faltante , el cual no nos permite la escritura al ser un secundario 
+```
+rs0 [direct: secondary] test> use albergues
+switched to db albergues
+rs0 [direct: secondary] albergues> db.fichas.insertOne( {
+|     albergue_id: 11, nome: "Albergue prueba 6", concello: "prueba", camino: "caminoprueba",
+|     prazas: 22, servizos: ["cociña", "wifi"],
+|     horario: { apertura: "13:00", peche: "22:30" }, admite_cans: false,
+|     opinions: [{ autor: "M.", nota: 2, texto: "Moi limpo e tranquilo" }]
+|   }
+| )
+MongoServerError[NotWritablePrimary]: not primary
+```
+
+* Al intentar leer las fichas conectandonos al dataset nos encontramos con que tenemos que añadir una etiqueta más a nuestro comando , esto para poder conectarnos desde el dataset a algún nodo existente.
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo1 mongosh "mongodb://mongo1,mongo2,mongo3/?replicaSet=rs0&readPreference=primaryPreferred"
+Current Mongosh Log ID: 6aede2a036dfac9cfb6cbd97
+Connecting to:          mongodb://mongo1,mongo2,mongo3/?replicaSet=rs0&readPreference=primaryPreferred&appName=mongosh+2.14.0
+Using MongoDB:          undefined
+Using Mongosh:          2.14.0
+
+For mongosh info see: https://www.mongodb.com/docs/mongodb-shell/
+
+The server failed to respond to a ping and may be unavailable:
+MongoServerSelectionError: connection <monitor> to 172.18.0.3:27017 timed out
+Caused by:
+MongoNetworkTimeoutError: connection <monitor> to 172.18.0.3:27017 timed out
+rs0 [secondary] test>
+```
+* Procedemos a la lectura
+```
+rs0 [secondary] albergues> db.fichas.findOne()
+{
+  _id: ObjectId('6aedc4b0dedd68493b32c631'),
+  albergue_id: 1,
+  nome: 'Albergue Pedra Miúda',
+  concello: 'Sarria',
+  camino: 'Francés',
+  prazas: 32,
+  servizos: [ 'cociña', 'lavadora', 'wifi' ],
+  horario: { apertura: '13:00', peche: '22:30' },
+  admite_cans: false,
+  opinions: [ { autor: 'M.', nota: 5, texto: 'Moi limpo e tranquilo' } ]
+}
+```
+
+* Arrancamos los nodos parados 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose unpause mongo2 mongo3
+[+] unpause 2/2
+ ✔ Container e3-mongodb-mongo2-1 Unpaused                                                                                  0.0s
+ ✔ Container e3-mongodb-mongo3-1 Unpaused 
+```
+
+* Comprobamos si replica set se recupera:
+
+1. Para ello comprobamos el estado actual 
+    
+```
+    (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo1 mongosh --quiet /scripts/estado.js
+    mongo1:27017   SECONDARY    saúde: 1
+    mongo2:27017   PRIMARY      saúde: 1
+    mongo3:27017   SECONDARY    saúde: 1
+```
+2. Intentamos conectarnos a replica set
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo2 mongosh "mongodb
+://mongo1,mongo2,mongo3/?replicaSet=rs0"
+Current Mongosh Log ID: 6aede5c579c08d4124e712a7
+```
+
+* Conclusiones:
+    * No existe primario aunque haya un nodo activo ya que este nunca va a poder conseguir la maoyoría de los votos , esto debido a que al existir 3 nodos cada uno es un voto , la mayoría siendo dos votos.
+    * Si no indicamos la preferencia de lectura este intentará ir a por el primario por defecto no encontrandose con ninguno activo , al indicar "primaryPreferred" mostramos que aunque tenga como preferencia el primario puede leer de los secundarios si fuese necesario
+    * Como la mayoría de votos en un sistema con 5 nodos son 3 votos , el replica set seguiría con normalidad al tener aún esa cantidad de nodos exactos activos.  
+    
 
 rs0 [direct: secondary] test>
 |  db.fichas.insertOne( {
