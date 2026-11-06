@@ -270,94 +270,17 @@ Current Mongosh Log ID: 6aede5c579c08d4124e712a7
     * No existe primario aunque haya un nodo activo ya que este nunca va a poder conseguir la maoyoría de los votos , esto debido a que al existir 3 nodos cada uno es un voto , la mayoría siendo dos votos.
     * Si no indicamos la preferencia de lectura este intentará ir a por el primario por defecto no encontrandose con ninguno activo , al indicar "primaryPreferred" mostramos que aunque tenga como preferencia el primario puede leer de los secundarios si fuese necesario
     * Como la mayoría de votos en un sistema con 5 nodos son 3 votos , el replica set seguiría con normalidad al tener aún esa cantidad de nodos exactos activos.  
-    
-
-rs0 [direct: secondary] test>
-|  db.fichas.insertOne( {
-|     albergue_id: 7, nome: "Albergue prueba 1", concello: "prueba", camino: "caminoprueba",
-|     prazas: 22, servizos: ["cociña", "wifi"],
-|     horario: { apertura: "13:00", peche: "22:30" }, admite_cans: false,
-|     opinions: [{ autor: "M.", nota: 2, texto: "Moi limpo e tranquilo" }]
-|   }
-| )
-MongoServerError[NotWritablePrimary]: not primary
-rs0 [direct: secondary] test> db.fichas.countDocuments()
-0
-
-rs0 [direct: secondary] replicaSet=rs0> use albergues
-switched to db albergues
-rs0 [direct: secondary] albergues> db.fichas.find().explain().serverInfo.host
-64da06dfb2d7
-rs0 [direct: secondary] albergues> db.getMongo().setReadPref("secondary")
-
-rs0 [direct: secondary] albergues> db.fichas.find().explain().serverInfo.host
-64da06dfb2d7
-rs0 [direct: secondary] albergues> db.fichas.find().explain().serverInfo.host
-64da06dfb2d7
-
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose pause mongo1
-[+] pause 1/1
- ✔ Container e3-mongodb-mongo1-1 Paused   
-
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo2 mongosh --quiet /scripts/estado.js
-mongo1:27017   (not reachable/healthy) saúde: 0
-mongo2:27017   PRIMARY      saúde: 1
-mongo3:27017   SECONDARY    saúde: 1
-
-
-rs0 [direct: primary] replicaSet=rs0>  db.fichas.insertOne( {
-|     albergue_id: 7, nome: "Albergue prueba 1", concello: "prueba", camino: "caminoprueba",
-|     prazas: 22, servizos: ["cociña", "wifi"],
-|     horario: { apertura: "13:00", peche: "22:30" }, admite_cans: false,
-|     opinions: [{ autor: "M.", nota: 2, texto: "Moi limpo e tranquilo" }]
-|   }
-| )
-{
-  acknowledged: true,
-  insertedId: ObjectId('6aedb63a867f86ee622b9786')
-}
-rs0 [direct: primary] replicaSet=rs0> db.fichas.countDocuments()
-1
-
-
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo2 mongosh replicaSet=rs0
-Current Mongosh Log ID: 6aedb714340ad88b5fcb15e9
-rs0 [direct: secondary] replicaSet=rs0> db.fichas.countDocuments()
-1
-
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose pause mongo1
-[+] pause 1/1
- ✔ Container e3-mongodb-mongo1-1 Paused                                                                                                                                                                      0.0s
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose pause mongo2
-[+] pause 1/1
- ✔ Container e3-mongodb-mongo2-1 Paused                                                                                                                                                                      0.0s
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$  docker compose exec mongo3 mongosh --quiet /scripts/estado.js
-mongo1:27017   (not reachable/healthy) saúde: 0
-mongo2:27017   (not reachable/healthy) saúde: 0
-mongo3:27017   SECONDARY    saúde: 1
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$
-
-
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo3 mongosh replicaSet=rs0
-rs0 [direct: secondary] replicaSet=rs0>  db.fichas.insertOne( {
-|     albergue_id: 8, nome: "Albergue prueba 2", concello: "prueba", camino: "caminoprueba",
-|     prazas: 22, servizos: ["cociña", "wifi"],
-|     horario: { apertura: "13:00", peche: "22:30" }, admite_cans: false,
-|     opinions: [{ autor: "M.", nota: 2, texto: "Moi limpo e tranquilo" }]
-|   }
-| )
-MongoServerError[NotWritablePrimary]: not primary
-rs0 [direct: secondary] replicaSet=rs0>
 
 
 
-rs0 [direct: secondary] test> db.fichas.insertOne( {
-|     albergue_id: 9, nome: "Albergue prueba 3", concello: "prueba", camino: "caminoprueba",
-|     prazas: 22, servizos: ["cociña", "wifi"],
-|     horario: { apertura: "13:00", peche: "22:30" }, admite_cans: false,
-|     opinions: [{ autor: "M.", nota: 2, texto: "Moi limpo e tranquilo" }]
-|   }
-| )
-MongoServerError[NotWritablePrimary]: not primary
-rs0 [direct: secondary] test>
+## Paso 6. Preguntas
+ 
+ * Mayoría en replica set :
+    * Se refiere a la forma de decidir el nuevo nodo primario una vez el anterior cae . En esta acción los nodos hablan entre ellos para realizar una votación, en la cual tiene que ser posible llegar a esa mayoría mencionada, es decir , uno de los nodos tiene que tener x número de votos obligatoriamente para poder ser primario.
+    * Se utilizan números impares a la hora de generar un replica set para evitar empates a la hora de la votación ,esto en el caso de que la caída de los nodos lleguen a la misma cantidad que la mitad de ese valor par , ya que por ejemplo si de 4 caen 2 , la mayoría son 3 
+    * Quórum en redis se refiere al número mínimo de sentinels que se necesitan para decidir un nodo principal como caído 
+* w: "majority":
+    * Con este proceso podemos arreglar que existan datos que se pierdan ya que se confirma cuando tiene la mayoría de votos, no cuando solo el primario lo guarda
 
+* Sistema de reservas:
+    * En el caso de las fichas utilizaríamos los nodos secundarios, esto debido a que son datos que aunque tengan diferentes estructuras no suelen cambiar constantemente 
