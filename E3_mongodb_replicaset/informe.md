@@ -112,13 +112,19 @@ rs0 [primary] albergues>
  ✔ Container e3-mongodb-mongo1-1 Paused     
 ```
 
-* Ejecutamos estado.js desde otro nodo 
+* Ejecutamos estado.js desde otro nodo cada pocos segundos , estos han tardado aproximadamente menos de 3 segundos en decidir y captar que estaba caido el nodo primario.
 ```
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo2 mongosh --quiet
-/scripts/estado.js
-mongo1:27017   (not reachable/healthy) saúde: 0
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose pause mongo1
+[+] pause 1/1
+ ✔ Container e3-mongodb-mongo1-1 Paused                                                                                                                               0.0s
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo2 mongosh --quiet /scripts/estado.js
+mongo1:27017   PRIMARY      saúde: 1
 mongo2:27017   SECONDARY    saúde: 1
-mongo3:27017   PRIMARY      saúde: 1
+mongo3:27017   SECONDARY    saúde: 1
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo2 mongosh --quiet /scripts/estado.js
+mongo1:27017   (not reachable/healthy) saúde: 0
+mongo2:27017   PRIMARY      saúde: 1
+mongo3:27017   SECONDARY    saúde: 1
 ```
 * Inserta una ficha nueva en el replica set
 ```
@@ -169,7 +175,18 @@ rs0 [direct: secondary] albergues> db.fichas.findOne({nome:'Albergue prueba 4'})
   opinions: [ { autor: 'M.', nota: 2, texto: 'Moi limpo e tranquilo' } ]
 }
 ```
-* Tabla
+* Tabla comparativa :
+
+
+| Pregunta      | POSTGRES  | REDIS-SENTINEL | MONGODB |
+|------------|------------------|--------------------|--------------------|
+| Quien detecta la caída | El propio usuario             | Los propios sentinels votan para confirmar que algún nodo ha caído| Los propios nodos ya que se comunican entre ellos  |
+|Quien decide nuevo nuevo primario | El propio usuario a través de promote()|Por Quórum de los propios sentinels| Los nodos restantes realizan una votación , finalizando esta si se consigue una mayoría                |
+| Como se entera el cliente |   Al cambiar la configuración           | Pregunta directamente a los sentinels| Por el driver
+| Papel nuevo primario | Se convierten en dos primarios en el mismo sistema             | Réplica del nuevo primario             | Nodo secundario
+
+
+
 ## Paso 5. Caen dos nodos
 * Paramos dos nodos
 ```
