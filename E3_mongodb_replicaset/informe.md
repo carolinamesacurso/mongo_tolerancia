@@ -1,4 +1,4 @@
-# Ejercicio replica mongo
+# Ejercicio replica mongo PARTE A
 ## Paso 1 .Montar replica set
 * Iniciamos replica set
 ```
@@ -302,3 +302,211 @@ Current Mongosh Log ID: 6aede5c579c08d4124e712a7
 * Sistema de reservas:
     * En el caso de las fichas utilizaríamos los nodos secundarios, esto debido a que son datos que aunque tengan diferentes estructuras no suelen cambiar constantemente asi que sería menos probable tener una lectura desincronizada
     * Pero a la hora de las plazas , al ser unos datos que van a cambiar constantemente debido a que están creados para ellos , utilizaríamos el nodo primario ya que en el se realizan las escrituras y tendrán antes las lecturas más actualizadas primero. 
+
+
+# Ejercicio replica mongo PARTE B
+
+## Paso 1 . Formar clúster
+
+* Miramos el estado inicial de los nodos , con esto observamos que solo encontramos un nodo activo
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage status
+2026-11-07T11:16:41.321108Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:16:41.368538Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== HEALTHY NODES ====
+ID                Hostname      Address           Tags  Zone  Capacity          DataAvail  Version
+8cc56a9b51025a67  933fadc5c7da  172.28.0.11:3901              NO ROLE ASSIGNED             v2.4.1
+```
+
+* Obtenemos identificadores del nodo 2 y 3 para conectarlos con el nodo 1
+```
+docker compose exec garage2 /garage node id
+c931e78431874d4c504518222d1bf67c4b77a9d43db40d87a9d3606df86f21d0@172.28.0.12:3901
+
+docker compose exec garage1 /garage node connect c931e78431874d4c504518222d1bf67c4b77a9d43db40d87a9d3606df86f21d0@172.28.0.12:3901
+2026-11-07T11:21:41.446039Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:21:41.494085Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+Success.
+
+docker compose exec garage3 /garage node id
+c220b69db3d98a4d763ea75585844715e6b988be3619ae5d7b64a2e5dab170e2@172.28.0.13:3901
+
+ocker compose exec garage1 /garage node connect c220b69db3d98a4d763ea75585844715e6b988be3619ae5d7b64a2e5dab170e2@172.28.0.13:3901
+2026-11-07T11:22:34.903978Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:22:34.950555Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+Success.
+```
+
+* Volver a comprobar estado 
+
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage status
+2026-11-07T11:23:00.001820Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:23:00.048874Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== HEALTHY NODES ====
+ID                Hostname      Address           Tags  Zone  Capacity          DataAvail  Version
+8cc56a9b51025a67  933fadc5c7da  172.28.0.11:3901              NO ROLE ASSIGNED             v2.4.1
+c220b69db3d98a4d  8277c7cb7b3e  172.28.0.13:3901              NO ROLE ASSIGNED             v2.4.1
+c931e78431874d4c  5571243f17e0  172.28.0.12:3901              NO ROLE ASSIGNED             v2.4.1
+```
+
+## Paso 2 . Definir layout
+
+* Asignamos zonas con identificadores
+```
+
+docker compose exec garage1 /garage layout assign -z zona1 -c 1G 8cc56a9b51025a67
+2026-11-07T11:34:35.296637Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:34:35.351411Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+Role changes are staged but not yet committed.
+Use `garage layout show` to view staged role changes,
+and `garage layout apply` to enact staged changes.
+```
+```
+docker compose exec garage1 /garage layout assign -z zona2 -c 1G c931e78431874d4c
+2026-11-07T11:36:54.902611Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:36:54.948070Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+Role changes are staged but not yet committed.
+Use `garage layout show` to view staged role changes,
+and `garage layout apply` to enact staged changes.
+```
+```
+docker compose exec garage1 /garage layout assign -z zona3 -c 1G c220b69db3d98a4d
+2026-11-07T11:37:28.220073Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:37:28.266043Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+Role changes are staged but not yet committed.
+Use `garage layout show` to view staged role changes,
+and `garage layout apply` to enact staged changes.
+```
+* Revisamos con show 
+```
+docker compose exec garage1 /garage layout show
+2026-11-07T11:42:17.494970Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:42:17.538938Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== CURRENT CLUSTER LAYOUT ====
+No nodes currently have a role in the cluster.
+See `garage status` to view available nodes.
+
+Current cluster layout version: 0
+
+==== STAGED ROLE CHANGES ====
+ID                Tags  Zone   Capacity
+8cc56a9b51025a67  []    zona1  953.7 MiB
+c220b69db3d98a4d  []    zona3  953.7 MiB
+c931e78431874d4c  []    zona2  953.7 MiB
+
+
+==== NEW CLUSTER LAYOUT AFTER APPLYING CHANGES ====
+ID                Tags  Zone   Capacity   Usable capacity
+8cc56a9b51025a67  []    zona1  953.7 MiB  953.7 MiB (100.0%)
+c220b69db3d98a4d  []    zona3  953.7 MiB  953.7 MiB (100.0%)
+c931e78431874d4c  []    zona2  953.7 MiB  953.7 MiB (100.0%)
+
+Zone redundancy: maximum
+
+==== COMPUTATION OF A NEW PARTITION ASSIGNATION ====
+
+Partitions are replicated 3 times on at least 3 distinct zones.
+
+Optimal partition size:                     3.7 MiB
+Usable capacity / total cluster capacity:   2.8 GiB / 2.8 GiB (100.0 %)
+Effective capacity (replication factor 3):  953.7 MiB
+
+zona1               Tags  Partitions        Capacity   Usable capacity
+  8cc56a9b51025a67  []    256 (256 new)     953.7 MiB  953.7 MiB (100.0%)
+  TOTAL                   256 (256 unique)  953.7 MiB  953.7 MiB (100.0%)
+
+zona3               Tags  Partitions        Capacity   Usable capacity
+  c220b69db3d98a4d  []    256 (256 new)     953.7 MiB  953.7 MiB (100.0%)
+  TOTAL                   256 (256 unique)  953.7 MiB  953.7 MiB (100.0%)
+
+zona2               Tags  Partitions        Capacity   Usable capacity
+  c931e78431874d4c  []    256 (256 new)     953.7 MiB  953.7 MiB (100.0%)
+  TOTAL                   256 (256 unique)  953.7 MiB  953.7 MiB (100.0%)
+
+
+To enact the staged role changes, type:
+
+    garage layout apply --version 1
+
+You can also revert all proposed changes with: garage layout revert
+```
+* Aplicamos versión 
+```
+docker compose exec garage1 /garage layout apply --version 1
+2026-11-07T11:43:26.060067Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:43:26.105675Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== COMPUTATION OF A NEW PARTITION ASSIGNATION ====
+```
+
+* Revisamos estado 
+```
+#revisar si esto es lo que quiere
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage status
+2026-11-07T11:43:41.130904Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:43:41.173645Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== HEALTHY NODES ====
+ID                Hostname      Address           Tags  Zone   Capacity   DataAvail          Version
+8cc56a9b51025a67  933fadc5c7da  172.28.0.11:3901  []    zona1  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c220b69db3d98a4d  8277c7cb7b3e  172.28.0.13:3901  []    zona3  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c931e78431874d4c  5571243f17e0  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+```
+
+## Paso 3. Buckert, clave y primeros datos
+
+* Creamos bucket
+
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage bucket create albergues-docs
+2026-11-07T11:49:37.245779Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:49:37.292758Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== BUCKET INFORMATION ====
+Bucket:          ef956073a5f5f7d04f2c2619ef5336ffacc5ad4d2170fe5a47318ec43c391a20
+Created:         2026-11-07 11:49:37.387 +00:00
+```
+
+* Claves de acceso y las guardamos como variables de entorno 
+```
+docker compose exec garage1 /garage key create e3-clave
+2026-11-07T11:50:20.380830Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-07T11:50:20.429652Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== ACCESS KEY INFORMATION ====
+Key ID:              GKf100cf24d2eecaeeca64caa4
+Key name:            e3-clave
+Secret key:          560c2c3f38f6457e8948a231ee39a93e98388a35dd50d40f348ccdf9b5b0e1ee
+Created:             2026-11-07 11:50:20.432 +00:00
+Validity:            valid
+Expiration:          never
+
+Can create buckets:  false
+
+==== BUCKETS FOR THIS KEY ====
+Permissions  ID  Global aliases  Local aliases
+```
+* 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage bucket allow --read --write --owner albergues-docs --key e3-clave
+```
+
+* Variables de contorno 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ export AWS_ACCESS_KEY_ID=GKf100cf24d2eecaeeca64caa4
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ export AWS_SECRET_ACCESS_KEY=560c2c3f38f6457e8948a231ee39a93e98388a35dd50d40f348ccdf9b5b0e1ee
+```
+
+* Instalamos boto3 y subimos 20 documentos 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py subir --n 20 --tamano-kb 512
+Subidos 20 obxectos de 512 KB en 3.2 s (reserva_0001 a reserva_0020). O manifesto ten 20.
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py listar
+Bucket albergues-docs: 20 obxectos, 10.5 MB
+
+#revisar si esto es lo que quiere
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar
+Verificados: 20 correctos · 0 corruptos · 0 sen poder descargar
+```
+
+
+## Paso 4. Cae un nodo
