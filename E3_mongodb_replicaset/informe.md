@@ -352,97 +352,8 @@ c931e78431874d4c  5571243f17e0  172.28.0.12:3901              NO ROLE ASSIGNED  
 
 ## Paso 2 . Definir layout
 
-* Asignamos zonas con identificadores
+* Después de asignar una zona a cada uno de los nodos con capacidad concreta , comprobamos su estado
 ```
-
-docker compose exec garage1 /garage layout assign -z zona1 -c 1G 8cc56a9b51025a67
-2026-11-07T11:34:35.296637Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
-2026-11-07T11:34:35.351411Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
-Role changes are staged but not yet committed.
-Use `garage layout show` to view staged role changes,
-and `garage layout apply` to enact staged changes.
-```
-```
-docker compose exec garage1 /garage layout assign -z zona2 -c 1G c931e78431874d4c
-2026-11-07T11:36:54.902611Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
-2026-11-07T11:36:54.948070Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
-Role changes are staged but not yet committed.
-Use `garage layout show` to view staged role changes,
-and `garage layout apply` to enact staged changes.
-```
-```
-docker compose exec garage1 /garage layout assign -z zona3 -c 1G c220b69db3d98a4d
-2026-11-07T11:37:28.220073Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
-2026-11-07T11:37:28.266043Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
-Role changes are staged but not yet committed.
-Use `garage layout show` to view staged role changes,
-and `garage layout apply` to enact staged changes.
-```
-* Revisamos con show 
-```
-docker compose exec garage1 /garage layout show
-2026-11-07T11:42:17.494970Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
-2026-11-07T11:42:17.538938Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
-==== CURRENT CLUSTER LAYOUT ====
-No nodes currently have a role in the cluster.
-See `garage status` to view available nodes.
-
-Current cluster layout version: 0
-
-==== STAGED ROLE CHANGES ====
-ID                Tags  Zone   Capacity
-8cc56a9b51025a67  []    zona1  953.7 MiB
-c220b69db3d98a4d  []    zona3  953.7 MiB
-c931e78431874d4c  []    zona2  953.7 MiB
-
-
-==== NEW CLUSTER LAYOUT AFTER APPLYING CHANGES ====
-ID                Tags  Zone   Capacity   Usable capacity
-8cc56a9b51025a67  []    zona1  953.7 MiB  953.7 MiB (100.0%)
-c220b69db3d98a4d  []    zona3  953.7 MiB  953.7 MiB (100.0%)
-c931e78431874d4c  []    zona2  953.7 MiB  953.7 MiB (100.0%)
-
-Zone redundancy: maximum
-
-==== COMPUTATION OF A NEW PARTITION ASSIGNATION ====
-
-Partitions are replicated 3 times on at least 3 distinct zones.
-
-Optimal partition size:                     3.7 MiB
-Usable capacity / total cluster capacity:   2.8 GiB / 2.8 GiB (100.0 %)
-Effective capacity (replication factor 3):  953.7 MiB
-
-zona1               Tags  Partitions        Capacity   Usable capacity
-  8cc56a9b51025a67  []    256 (256 new)     953.7 MiB  953.7 MiB (100.0%)
-  TOTAL                   256 (256 unique)  953.7 MiB  953.7 MiB (100.0%)
-
-zona3               Tags  Partitions        Capacity   Usable capacity
-  c220b69db3d98a4d  []    256 (256 new)     953.7 MiB  953.7 MiB (100.0%)
-  TOTAL                   256 (256 unique)  953.7 MiB  953.7 MiB (100.0%)
-
-zona2               Tags  Partitions        Capacity   Usable capacity
-  c931e78431874d4c  []    256 (256 new)     953.7 MiB  953.7 MiB (100.0%)
-  TOTAL                   256 (256 unique)  953.7 MiB  953.7 MiB (100.0%)
-
-
-To enact the staged role changes, type:
-
-    garage layout apply --version 1
-
-You can also revert all proposed changes with: garage layout revert
-```
-* Aplicamos versión 
-```
-docker compose exec garage1 /garage layout apply --version 1
-2026-11-07T11:43:26.060067Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
-2026-11-07T11:43:26.105675Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
-==== COMPUTATION OF A NEW PARTITION ASSIGNATION ====
-```
-
-* Revisamos estado 
-```
-#revisar si esto es lo que quiere
-
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage status
 2026-11-07T11:43:41.130904Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
 2026-11-07T11:43:41.173645Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
@@ -454,48 +365,8 @@ c931e78431874d4c  5571243f17e0  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 
 ```
 
 ## Paso 3. Buckert, clave y primeros datos
+* Después de crear el bucket ,las claves de acceso y guardarlas como variables de entorno , instalamos boto3 y subimos los 20 documentos
 
-* Creamos bucket
-
-```
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage bucket create albergues-docs
-2026-11-07T11:49:37.245779Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
-2026-11-07T11:49:37.292758Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
-==== BUCKET INFORMATION ====
-Bucket:          ef956073a5f5f7d04f2c2619ef5336ffacc5ad4d2170fe5a47318ec43c391a20
-Created:         2026-11-07 11:49:37.387 +00:00
-```
-
-* Claves de acceso y las guardamos como variables de entorno 
-```
-docker compose exec garage1 /garage key create e3-clave
-2026-11-07T11:50:20.380830Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
-2026-11-07T11:50:20.429652Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
-==== ACCESS KEY INFORMATION ====
-Key ID:              GKf100cf24d2eecaeeca64caa4
-Key name:            e3-clave
-Secret key:          560c2c3f38f6457e8948a231ee39a93e98388a35dd50d40f348ccdf9b5b0e1ee
-Created:             2026-11-07 11:50:20.432 +00:00
-Validity:            valid
-Expiration:          never
-
-Can create buckets:  false
-
-==== BUCKETS FOR THIS KEY ====
-Permissions  ID  Global aliases  Local aliases
-```
-* 
-```
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage bucket allow --read --write --owner albergues-docs --key e3-clave
-```
-
-* Variables de contorno 
-```
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ export AWS_ACCESS_KEY_ID=GKf100cf24d2eecaeeca64caa4
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ export AWS_SECRET_ACCESS_KEY=560c2c3f38f6457e8948a231ee39a93e98388a35dd50d40f348ccdf9b5b0e1ee
-```
-
-* Instalamos boto3 y subimos 20 documentos 
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py subir --n 20 --tamano-kb 512
 Subidos 20 obxectos de 512 KB en 3.2 s (reserva_0001 a reserva_0020). O manifesto ten 20.
@@ -511,7 +382,7 @@ Verificados: 20 correctos · 0 corruptos · 0 sen poder descargar
 
 ## Paso 4. Cae un nodo
 
-* Paramos nodo 3 y verificamos de nuevo 
+* Paramos nodo 3 y verificamos de nuevo , comprobando que sigue funcionando 
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose stop garage3
 [+] stop 1/1
@@ -521,7 +392,7 @@ Verificados: 20 correctos · 0 corruptos · 0 sen poder descargar
 Verificados: 20 correctos · 0 corruptos · 0 sen poder descargar
 ```
 
-* Subir 5 documentos
+* Subir 5 documentos con un resultado positivo
  ```
  (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py subir --n 5
 Subidos 5 obxectos de 512 KB en 0.6 s (reserva_0021 a reserva_0025). O manifesto ten 25.
@@ -584,6 +455,20 @@ c931e78431874d4c  dd868f038cb1  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 
 Verificados: 25 correctos · 0 corruptos · 0 sen poder descargar
 ```
 
+## Explicaciones de los pasos 4 y 5 
+* En las pruebas realizadas observamos como se comportan los nodos según el quórum establecido 
+* En el paso 4 realizamos la parada del nodo 3 , comprobando que aunque uno de los nodos esté caído se puede seguir realizando las operaciones normales de verificación de lectura y escritura , ya que necesita un quórum de dos nodos mínimo participando para llegar a esa mayoría 
+* En el paso 5 ,al parar el nodo 2 , nos encontramos que al tener 1 solo nodo no puede llegar a la cantidad de quórum necesaria , lo cual nos confirma que son 2 por este mensaje 'Could not reach quorum of 2'. Al volver a inciar los dos nodos faltantes , verificamos que el quórum vuelve recuperarse
+
+## Comparaciones de los pasos 4 y 5 
+
+* Aunque los garage, replica set y sentinel utilizan quórum , este se utiliza para diferentes funcionalidades.
+* En Garage observamos qeu se utiliza para permitir ealizar determinadas operaciones cuando existen suficientes nodos participantes.
+* En mongodb replica set esta mayoría se utiliza principalmente para realizar votaciones para las elecciones de un nuevo nodo primario cuandos e produce la caída del primario.
+* En sentinel el quórum permite captar qeu el nodo primario está caído y que es necesario iniciar el proceso de failover para proceder con la selección de una de las réplicas como nuevo primario.
+* Aunque en los 3 casos , si solo cae uno de los 3 miembros , los dos restantes conservan esa mayoría , pero con dos no se alcanza en ningún momento el mínimo necesario, impidiendo ralizar operaciones 
+
+
 ## Paso 6. Perdida de un disco 
 
 * Comprobar cuanto ocupa los datos del nodo 3
@@ -599,30 +484,7 @@ Status: Downloaded newer image for alpine:latest
 12.8M   /d
 ```
 
-* Parar el nodo 3 , borrar volumen y arrancarlo de nuevo
-
-```
-docker compose stop garage3
-[+] stop 1/1
- ✔ Container e3-garage-garage3-1 Stopped
-```
-
-* Borrar volúmen
-```
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose rm -f garage3
-Going to remove e3-garage-garage3-1
-[+] remove 1/1
- ✔ Container e3-garage-garage3-1 Removed                                                                                   0.2s
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume rm e3-garage_garage3_datos
-e3-garage_garage3_datos
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose up -d garage3
-[+] up 2/2
- ✔ Volume e3-garage_garage3_datos Created                                                                                  0.1s
- ✔ Container e3-garage-garage3-1  Started                                                                                  1.2s
-        
-```
-
-* Comprobar tamaño del volúmen después de arrancarlo 
+* Comprobar tamaño del volúmen después de arrancarlo despuñes de borrar el volúmen
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume ls
 DRIVER    VOLUME NAME
@@ -637,22 +499,8 @@ local     e3-garage_garage3_meta
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_datos:/d alpine du -sh /d
 4.0K    /d 
 ```
-
-* Verificamos desde nodo 3
-```
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar --porto 3920
-Erro ao descargar reservas/2026/reserva_0001.pdf: EndpointConnectionError: Could not connect to the endpoint URL: "http://localhost:3920/albergues-docs/reservas/2026/reserva_0001.pdf"
-Verificados: 0 correctos · 0 corruptos · 25 sen poder descargar
-```
-
-* Solucionar
-```
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_meta:/meta alpine cp /meta/data_layout /meta/data_layout.bak
-(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_meta:/meta alpine rm /meta/data_layout
-
-```
-
-* Intento de verificar 
+* Al verificar comprobamos que los 25 objetos se pudieron descargar por el nodo 3 , aunque este estuviese vacío
+    * Esto debido a que los objetos están replicados en los otros nodos y el 3 puede volver a incorporarse al clúster . Por eso, puede localizar las copias necesarias de bloques en los otros nodos para poder realizar las operaciones de descarga 
 
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar --porto 3920
@@ -670,6 +518,61 @@ c220b69db3d98a4d  Repair launched
 
 ```
 
+## Comandos adicionales utilizados para apartado 6 
+* Al parar el nodo 3, este tenía dificultades al eliminar el volúmen ,ya que indicaba que aún estaba en uso .
+   
+``` 
+    (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume rm e3-garage_garage3_datos
+    Error response from daemon: remove e3-garage_garage3_datos: volume is in use - [d81675f4aed995134af624d8e5124bb36174b96d31434cf23aa6301ccfda5c64]
+    
+```
+
+ * Para solucionar esto eliminamos tanto el volúmen como el contenedor con los siguientes comandos
+
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose rm -f garage3
+Going to remove e3-garage-garage3-1
+[+] remove 1/1
+ ✔ Container e3-garage-garage3-1 Removed                                                                                   0.2s
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume rm e3-garage_garage3_datos
+e3-garage_garage3_datos
+
+```
+
+* Al intentar verificar el nodo 3 desde el puerto indicado nos muestra que no puede conectarse , esto debido a que no ha conseguiro arrancar correctamente 
+
+
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage status
+2026-11-08T11:58:42.608155Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-08T11:58:42.656648Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== HEALTHY NODES ====
+ID                Hostname      Address           Tags  Zone   Capacity   DataAvail          Version
+8cc56a9b51025a67  7ee3fafd47c0  172.28.0.11:3901  []    zona1  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c931e78431874d4c  dd868f038cb1  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+
+==== FAILED NODES ====
+ID                Hostname      Tags  Zone   Capacity   Last seen
+c220b69db3d98a4d  d81675f4aed9  []    zona3  953.7 MiB  25 minutes ago
+```
+
+* Esto debido a que no enuentra el archivo 'garage-marker' 
+
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose logs --tail=50 garage3
+...
+Error: Could not find expected marker file `garage-marker` in data directory `/var/lib/garage/data`, make sure this data directory is mounted correctly.
+```
+
+* Para solucionar esto ejecutamos los siguientes comandos , los cuales realizan una copia de seguridad y elimina data_layout 
+
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_meta:/meta alpine cp /meta/data_layout /meta/data_layout.bak
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_meta:/meta alpine rm /meta/data_layout
+
+```
+
+## Paso 7 . Preguntas
 
 
 
