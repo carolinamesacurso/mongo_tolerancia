@@ -510,3 +510,284 @@ Verificados: 20 correctos · 0 corruptos · 0 sen poder descargar
 
 
 ## Paso 4. Cae un nodo
+
+* Paramos nodo 3 y verificamos de nuevo 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose stop garage3
+[+] stop 1/1
+ ✔ Container e3-garage-garage3-1 Stopped                                                                                   1.9s
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar
+Verificados: 20 correctos · 0 corruptos · 0 sen poder descargar
+```
+
+* Subir 5 documentos
+ ```
+ (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py subir --n 5
+Subidos 5 obxectos de 512 KB en 0.6 s (reserva_0021 a reserva_0025). O manifesto ten 25.
+ ```
+
+ * Mostrar garage status 
+ ```
+docker compose exec garage1 /garage status
+
+2026-11-08T11:05:18.218831Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-08T11:05:18.266689Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== HEALTHY NODES ====
+ID                Hostname      Address           Tags  Zone   Capacity   DataAvail          Version
+8cc56a9b51025a67  7ee3fafd47c0  172.28.0.11:3901  []    zona1  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c931e78431874d4c  dd868f038cb1  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+
+==== FAILED NODES ====
+ID                Hostname      Tags  Zone   Capacity   Last seen
+c220b69db3d98a4d  d81675f4aed9  []    zona3  953.7 MiB  2 minutes ago
+ ```
+
+## Paso 5. Caen dos nodos
+
+* Parar nodo 2
+ ```
+ (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose stop garage2
+[+] stop 1/1
+ ✔ Container e3-garage-garage2-1 Stopped 
+  ```
+
+* Verificar 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar
+Erro ao descargar reservas/2026/reserva_0001.pdf: ClientError: An error occurred (ServiceUnavailable) when calling the GetObject operation (reached max retries: 1): Internal error: Could not reach quorum of 2 (sets=None). 1 of 3 request succeeded, others returned errors: ["Network error: Not connected: c220b69db3d98a4d", "Network error: Not connected: c931e78431874d4c"]
+Verificados: 0 correctos · 0 corruptos · 25 sen poder descargar
+```
+
+* Arrancar los dos nodos
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose start garage2 garage3
+[+] start 2/2
+ ✔ Container e3-garage-garage3-1 Started                                                                                   1.4s
+ ✔ Container e3-garage-garage2-1 Started                                                                                   2.1s
+```
+
+* Verificar
+```
+docker compose exec garage1 /garage status
+
+2026-11-08T11:17:25.567784Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-08T11:17:25.617092Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== HEALTHY NODES ====
+ID                Hostname      Address           Tags  Zone   Capacity   DataAvail          Version
+8cc56a9b51025a67  7ee3fafd47c0  172.28.0.11:3901  []    zona1  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c220b69db3d98a4d  d81675f4aed9  172.28.0.13:3901  []    zona3  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c931e78431874d4c  dd868f038cb1  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar
+Verificados: 25 correctos · 0 corruptos · 0 sen poder descargar
+```
+
+## Paso 6. Perdida de un disco 
+
+* Comprobar cuanto ocupa los datos del nodo 3
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_datos:/d alpine du -sh /d
+Unable to find image 'alpine:latest' locally
+latest: Pulling from library/alpine
+881fc932939e: Pull complete
+c35a7d82b8fa: Download complete
+86ff264fe568: Download complete
+Digest: sha256:3f4d6b32e26703c6082839234f43769d5046b3ac7c910033911d1e71d8cd630a
+Status: Downloaded newer image for alpine:latest
+12.8M   /d
+```
+
+* Parar el nodo 3 , borrar volumen y arrancarlo de nuevo
+
+```
+docker compose stop garage3
+[+] stop 1/1
+ ✔ Container e3-garage-garage3-1 Stopped
+```
+
+* Borrar volúmen
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose rm -f garage3
+Going to remove e3-garage-garage3-1
+[+] remove 1/1
+ ✔ Container e3-garage-garage3-1 Removed                                                                                   0.2s
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume rm e3-garage_garage3_datos
+e3-garage_garage3_datos
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose up -d garage3
+[+] up 2/2
+ ✔ Volume e3-garage_garage3_datos Created                                                                                  0.1s
+ ✔ Container e3-garage-garage3-1  Started                                                                                  1.2s
+        
+```
+
+* Comprobar tamaño del volúmen después de arrancarlo 
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume ls
+DRIVER    VOLUME NAME
+local     e2-replicacion_datos_primario
+local     e2-replicacion_datos_replica
+local     e3-garage_garage1_datos
+local     e3-garage_garage1_meta
+local     e3-garage_garage2_datos
+local     e3-garage_garage2_meta
+local     e3-garage_garage3_datos
+local     e3-garage_garage3_meta
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_datos:/d alpine du -sh /d
+4.0K    /d 
+```
+
+* Verificamos desde nodo 3
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar --porto 3920
+Erro ao descargar reservas/2026/reserva_0001.pdf: EndpointConnectionError: Could not connect to the endpoint URL: "http://localhost:3920/albergues-docs/reservas/2026/reserva_0001.pdf"
+Verificados: 0 correctos · 0 corruptos · 25 sen poder descargar
+```
+
+* Solucionar
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_meta:/meta alpine cp /meta/data_layout /meta/data_layout.bak
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_meta:/meta alpine rm /meta/data_layout
+
+```
+
+* Intento de verificar 
+
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar --porto 3920
+Verificados: 25 correctos · 0 corruptos · 0 sen poder descargar
+```
+
+* Reparamos y comprobamos tamaño
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage3 /garage repair --yes blocks
+2026-11-08T12:10:27.169130Z  INFO garage_net::netapp: Connected to 172.28.0.13:3901, negotiating handshake...
+2026-11-08T12:10:27.217476Z  INFO garage_net::netapp: Connection established to c220b69db3d98a4d
+c220b69db3d98a4d  Repair launched
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_datos:/d alpine du -sh /d
+12.8M   /d
+
+```
+
+
+
+
+
+
+
+
+```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose stop garage3
+[+] stop 1/1
+ ✔ Container e3-garage-garage3-1 Stopped                                                                                   0.0s
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage status
+2026-11-08T11:42:59.825896Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-08T11:42:59.872368Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== HEALTHY NODES ====
+ID                Hostname      Address           Tags  Zone   Capacity   DataAvail          Version
+8cc56a9b51025a67  7ee3fafd47c0  172.28.0.11:3901  []    zona1  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c931e78431874d4c  dd868f038cb1  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+
+==== FAILED NODES ====
+ID                Hostname      Tags  Zone   Capacity   Last seen
+c220b69db3d98a4d  d81675f4aed9  []    zona3  953.7 MiB  9 minutes ago
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose ps -a
+NAME                  IMAGE                  COMMAND            SERVICE   CREATED          STATUS                      PORTS
+e3-garage-garage1-1   dxflrs/garage:v2.4.1   "/garage server"   garage1   54 minutes ago   Up 54 minutes               0.0.0.0:3900->3900/tcp, [::]:3900->3900/tcp
+e3-garage-garage2-1   dxflrs/garage:v2.4.1   "/garage server"   garage2   54 minutes ago   Up 28 minutes               0.0.0.0:3910->3900/tcp, [::]:3910->3900/tcp
+e3-garage-garage3-1   dxflrs/garage:v2.4.1   "/garage server"   garage3   54 minutes ago   Exited (0) 10 minutes ago
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume rm e3-garage_garage3_datos
+Error response from daemon: remove e3-garage_garage3_datos: volume is in use - [d81675f4aed995134af624d8e5124bb36174b96d31434cf23aa6301ccfda5c64]
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume rm e3-garage_garage3_datos
+Error response from daemon: remove e3-garage_garage3_datos: volume is in use - [d81675f4aed995134af624d8e5124bb36174b96d31434cf23aa6301ccfda5c64]
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose rm -f garage3
+Going to remove e3-garage-garage3-1
+[+] remove 1/1
+ ✔ Container e3-garage-garage3-1 Removed                                                                                   0.2s
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume rm e3-garage_garage3_datos
+e3-garage_garage3_datos
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose up -d garage3
+[+] up 2/2
+ ✔ Volume e3-garage_garage3_datos Created                                                                                  0.1s
+ ✔ Container e3-garage-garage3-1  Started 
+
+
+
+
+
+ (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_datos:/d alpine du -sh /d
+4.0K    /d
+ ```
+
+ ```
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose stop garage3
+[+] stop 1/1
+ ✔ Container e3-garage-garage3-1 Stopped                                                                                   0.0s
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_meta:/meta alpine cp /meta/data_layout /meta/data_layout.bak
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_meta:/meta alpine rm /meta/data_layout
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose up -d garage3
+[+] up 1/1
+ ✔ Container e3-garage-garage3-1 Started                                                                                   0.6s
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose ps -a
+NAME                  IMAGE                  COMMAND            SERVICE   CREATED             STATUS             PORTS
+e3-garage-garage1-1   dxflrs/garage:v2.4.1   "/garage server"   garage1   About an hour ago   Up About an hour   0.0.0.0:3900->3900/tcp, [::]:3900->3900/tcp
+e3-garage-garage2-1   dxflrs/garage:v2.4.1   "/garage server"   garage2   About an hour ago   Up 52 minutes      0.0.0.0:3910->3900/tcp, [::]:3910->3900/tcp
+e3-garage-garage3-1   dxflrs/garage:v2.4.1   "/garage server"   garage3   17 minutes ago      Up 20 seconds      0.0.0.0:3920->3900/tcp, [::]:3920->3900/tcp
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose logs --tail=30 garage3
+garage3-1  | 2026-11-08T12:08:12.274041Z  INFO garage_model::garage: Initialize admin_token_table...
+garage3-1  | 2026-11-08T12:08:12.276688Z  INFO garage_model::garage: Initialize bucket_table...
+garage3-1  | 2026-11-08T12:08:12.277511Z  INFO garage_model::garage: Initialize bucket_alias_table...
+garage3-1  | 2026-11-08T12:08:12.278271Z  INFO garage_model::garage: Initialize key_table_table...
+garage3-1  | 2026-11-08T12:08:12.278949Z  INFO garage_model::garage: Initialize block_ref_table...
+garage3-1  | 2026-11-08T12:08:12.279283Z  INFO garage_model::garage: Initialize version_table...
+garage3-1  | 2026-11-08T12:08:12.279707Z  INFO garage_model::garage: Initialize multipart upload counter table...
+garage3-1  | 2026-11-08T12:08:12.280464Z  INFO garage_model::garage: Initialize multipart upload table...
+garage3-1  | 2026-11-08T12:08:12.281151Z  INFO garage_model::garage: Initialize object counter table...
+garage3-1  | 2026-11-08T12:08:12.281378Z  INFO garage_model::garage: Initialize object_table...
+garage3-1  | 2026-11-08T12:08:12.281807Z  INFO garage_model::garage: Load lifecycle worker state...
+garage3-1  | 2026-11-08T12:08:12.283527Z  INFO garage_model::garage: Initialize K2V counter table...
+garage3-1  | 2026-11-08T12:08:12.283758Z  INFO garage_model::garage: Initialize K2V subscription manager...
+garage3-1  | 2026-11-08T12:08:12.283798Z  INFO garage_model::garage: Initialize K2V item table...
+garage3-1  | 2026-11-08T12:08:12.284135Z  INFO garage_model::garage: Initialize K2V RPC handler...
+garage3-1  | 2026-11-08T12:08:12.285287Z  INFO garage::server: Initializing background runner...
+garage3-1  | 2026-11-08T12:08:12.286048Z  INFO garage::server: Spawning Garage workers...
+garage3-1  | 2026-11-08T12:08:12.288997Z  INFO garage::server: Initialize Admin API server and metrics collector...
+garage3-1  | 2026-11-08T12:08:12.289346Z  INFO garage::server: Launching internal Garage cluster communications...
+garage3-1  | 2026-11-08T12:08:12.289491Z  INFO garage::server: Initializing S3 API server...
+garage3-1  | 2026-11-08T12:08:12.290009Z  INFO garage_net::netapp: Listening on [::]:3901
+garage3-1  | 2026-11-08T12:08:12.293141Z  INFO garage_net::netapp: Connected to 172.28.0.12:3901, negotiating handshake...
+garage3-1  | 2026-11-08T12:08:12.293148Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+garage3-1  | 2026-11-08T12:08:12.295730Z  INFO garage_api_common::generic_server: S3 API server listening on http://[::]:3900
+garage3-1  | 2026-11-08T12:08:12.339160Z  INFO garage_net::netapp: Connection established to c931e78431874d4c
+garage3-1  | 2026-11-08T12:08:12.339251Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+garage3-1  | 2026-11-08T12:08:12.339270Z  INFO garage_net::peering: Successfully connected to 8cc56a9b51025a67 at 172.28.0.11:3901
+garage3-1  | 2026-11-08T12:08:12.339410Z  INFO garage_net::peering: Successfully connected to c931e78431874d4c at 172.28.0.12:3901
+garage3-1  | 2026-11-08T12:08:32.617153Z  INFO garage_table::sync: (bucket_object_counter) Sending 1 items to c931e78431874d4c
+garage3-1  | 2026-11-08T12:08:32.617749Z  INFO garage_table::sync: (bucket_object_counter) Sending 1 items to 8cc56a9b51025a67
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage1 /garage status
+2026-11-08T12:08:52.617435Z  INFO garage_net::netapp: Connected to 172.28.0.11:3901, negotiating handshake...
+2026-11-08T12:08:52.662061Z  INFO garage_net::netapp: Connection established to 8cc56a9b51025a67
+==== HEALTHY NODES ====
+ID                Hostname      Address           Tags  Zone   Capacity   DataAvail          Version
+8cc56a9b51025a67  7ee3fafd47c0  172.28.0.11:3901  []    zona1  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c220b69db3d98a4d  bfca49aee23e  172.28.0.13:3901  []    zona3  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+c931e78431874d4c  dd868f038cb1  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ python s3_proba.py verificar --porto 3920
+Verificados: 25 correctos · 0 corruptos · 0 sen poder descargar
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose exec garage3 /garage repair --yes blocks
+2026-11-08T12:10:27.169130Z  INFO garage_net::netapp: Connected to 172.28.0.13:3901, negotiating handshake...
+2026-11-08T12:10:27.217476Z  INFO garage_net::netapp: Connection established to c220b69db3d98a4d
+c220b69db3d98a4d  Repair launched
+
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker run --rm -v e3-garage_garage3_datos:/d alpine du -sh /d
+12.8M   /d
+(.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$
+ ```
