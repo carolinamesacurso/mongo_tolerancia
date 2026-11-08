@@ -556,7 +556,7 @@ ID                Hostname      Tags  Zone   Capacity   Last seen
 c220b69db3d98a4d  d81675f4aed9  []    zona3  953.7 MiB  25 minutes ago
 ```
 
-* Esto debido a que no enuentra el archivo 'garage-marker' 
+* Esto debido a que no encuentra el archivo 'garage-marker' 
 
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker compose logs --tail=50 garage3
@@ -574,7 +574,16 @@ Error: Could not find expected marker file `garage-marker` in data directory `/v
 
 ## Paso 7 . Preguntas
 
+1. Réplica ×3 frente a erasure coding 4+2, partiendo de 300GB
+    * Tres copias completas (réplica ×3) = 300 X 3 = 900GB, teniendo una tolerancia de fallos la cual puede perder 2 de las 3 copias y seguir teniendo una copia disponiblen ya que en cada copia se guarda una completa de los documentos.
+    * Erasure coding 4+2 = 300 x 6/4 =  450 GB ,  pudiendo perder hasta 2 fragmentos sin perder la dispobilidad de los datos originales
+        * Esto debido a que los datos originalesse dividen en 4 fragmentos y generan 2 adicionales de paridad (6 en total), asi que si perdemos 2  fragmentos los 4 restantes estarían intactos con los datos originales
 
+2. El archivo manifesto.json sirve como lista de datos almacenados y permite que se sepa que documentos comparar su sha256 con el del manifesto (verificar) al descargar
+    * Debido a esto no podría localizar errores como documentos faltantes que deberían de estar, contenido descargado incirrecto u objeto no descargados que faltan.
+
+
+3. Es importante que las copias estén distribuida para poder aislar incidentes de cada unos de los nodos, esto patra que los documentos puedan seguir estando disponibles gracias a las copias restantes.
 
 
 
