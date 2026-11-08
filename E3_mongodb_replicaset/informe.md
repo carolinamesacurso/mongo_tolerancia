@@ -15,7 +15,7 @@ mongo2:27017   SECONDARY    saúde: 1
 mongo3:27017   SECONDARY    saúde: 1
 ```
 
-* En este caso observamos que se ha decidio mediante votación que mongo1 sea el primario y se han quedado como secundarios mongo 2 y 3
+* En este caso observamos que se ha decidido mediante votación que mongo1 sea el primario y se han quedado como secundarios mongo 2 y 3
 * Al comparar los dos archivos .yaml observamos lo siguiente :
     * Debido al propio mecanismo de redis-sentinel, este realiza su supervisión a través de diferentes sentinels que supervisan a cada uno de los redis existentes. Por ello vemos que se han declarado 3 servicios de tipo sentinel
     * A diferencia de mongo , el cual implementa en su propio replica set los sistemas de vigilancia y votación , por lo tanto no es necesario declarar una cantidad exacta de ellos.
@@ -45,7 +45,7 @@ rs0 [primary] albergues> db.fichas.countDocuments()
 ```
 
 * En la cadena de conexión nos encontramos que se ven mencionados los 3 nodos actuales , esto para que el driver tenga más puntos de acceso de comunicación para saber cual es el primario y cuales los secundarios. Esto por si alguno de los nodos falla que tenga todas las opciones posibles para saber cual es el primario.
-* En la demo de sentinel , el cliente se comunicaba con los sentinels para poder saber cual era el primario sin tener que saber como se llaman los demas 
+* En la demo de sentinel , el cliente se comunicaba con los sentinels para poder saber cual era el primario sin tener que saber como se llaman los demás 
 
 
 ## Paso 3 - Leer y escribir en los secundarios
@@ -97,13 +97,13 @@ rs0 [primary] albergues>
 
 * Conclusión de pasos anteriores:
     1. Al intentar realizar una operación de escritura en un nodo secundario nos salta un error , ya que los nodos secundarios solo son de lectura 
-        * Por eso al intentar realizar una lectura, si que nos muestra un resultado positivo
-    2. Al conectarnos al replica set este muestra que por defecto las lecturas van siempre al primario , indicandonos esto con su id correspondiente .
+        * Por eso al intentar realizar una lectura, sí que nos muestra un resultado positivo
+    2. Al conectarnos al replica set, este muestra que por defecto las lecturas van siempre al primario , indicándonos esto con su id correspondiente .
     3. Después de declarar un nuevo nodo secundario como preferente a la hora de las lecturas , este nos muestra un cambio de id a la hora de consultar la misma información
 
 * Inconvenientes y ventajas
     * Como inconveniente de leer de lo secundarios tenemos que podemos estar realizando operaciones con datos atrasados 
-    * Como ventaja podemos concluir que así quitamos carga de operaciones al nodo primario , repartiendolo entre varios nodos.
+    * Como ventaja podemos concluir que así quitamos carga de operaciones al nodo primario , repartiéndolo entre varios nodos.
 
 
 ## Paso 4 . Cae el primario
@@ -114,7 +114,7 @@ rs0 [primary] albergues>
  ✔ Container e3-mongodb-mongo1-1 Paused     
 ```
 
-* Ejecutamos estado.js desde otro nodo cada pocos segundos , estos han tardado aproximadamente menos de 3 segundos en captar que estaba caido el nodo primario y decidir uno nuevo.
+* Ejecutamos estado.js desde otro nodo cada pocos segundos , estos han tardado aproximadamente menos de 3 segundos en captar que estaba caído el nodo primario y decidir uno nuevo.
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose pause mongo1
 [+] pause 1/1
@@ -205,7 +205,7 @@ mongo2:27017   (not reachable/healthy) saúde: 0
 mongo3:27017   (not reachable/healthy) saúde: 0
 ```
 * Intentar insertar nueva ficha al replica set y al nodo separadamente
-    * Replica set , la cual no nos permite conectarnos a esta ya que el cliente pregunta quien es el primario a los nodos pero aún no existe 1 establecido 
+    * Replica set , la cual no nos permite conectarnos a esta, ya que el cliente pregunta quien es el primario a los nodos, pero aún no existe 1 establecido .
 ```
     (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo1 mongosh "mongodb://mongo1,mongo2,mongo3/?replicaSet=rs0"
 Current Mongosh Log ID: 6aedde29d6efb60b2aa6f8fb
@@ -227,7 +227,7 @@ rs0 [direct: secondary] albergues> db.fichas.insertOne( {
 MongoServerError[NotWritablePrimary]: not primary
 ```
 
-* Al intentar leer las fichas conectandonos al dataset nos encontramos con que tenemos que añadir una etiqueta más a nuestro comando , esto para poder conectarnos desde el dataset a algún nodo existente.
+* Al intentar leer las fichas conectándonos al dataset, nos encontramos con que tenemos que añadir una etiqueta más a nuestro comando , esto para poder conectarnos desde el dataset a algún nodo existente.
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose exec mongo1 mongosh "mongodb://mongo1,mongo2,mongo3/?replicaSet=rs0&readPreference=primaryPreferred"
 Current Mongosh Log ID: 6aede2a036dfac9cfb6cbd97
@@ -286,8 +286,8 @@ Current Mongosh Log ID: 6aede5c579c08d4124e712a7
 ```
 
 * Conclusiones:
-    * No existe primario aunque haya un nodo activo ya que este nunca va a poder conseguir la maoyoría de los votos , esto debido a que al existir 3 nodos cada uno es un voto , la mayoría siendo dos votos.
-    * Si no indicamos la preferencia de lectura este intentará ir a por el primario por defecto no encontrandose con ninguno activo , al indicar "primaryPreferred" mostramos que aunque tenga como preferencia el primario puede leer de los secundarios si fuese necesario
+    * No existe primario aunque haya un nodo activo ya que este nunca va a poder conseguir la mayoría de los votos .Esto debido a que al existir 3 nodos cada uno es un voto y la mayoría son dos votos.
+    * Si no indicamos la preferencia de lectura este intentará ir a por el primario por defecto no encontrándose con ninguno activo . Al indicar "primaryPreferred" mostramos que aunque tenga como preferencia el primario puede leer de los secundarios si fuese necesario
     * Como la mayoría de votos en un sistema con 5 nodos son 3 votos , el replica set seguiría con normalidad al tener aún esa cantidad de nodos exactos activos.  
 
 
@@ -302,8 +302,8 @@ Current Mongosh Log ID: 6aede5c579c08d4124e712a7
     * Con este proceso podemos arreglar que existan datos que se pierdan ya que se confirma cuando tiene la mayoría de votos, no cuando solo el primario lo guarda
 
 * Sistema de reservas:
-    * En el caso de las fichas utilizaríamos los nodos secundarios, esto debido a que son datos que aunque tengan diferentes estructuras no suelen cambiar constantemente asi que sería menos probable tener una lectura desincronizada
-    * Pero a la hora de las plazas , al ser unos datos que van a cambiar constantemente debido a que están creados para ellos , utilizaríamos el nodo primario ya que en el se realizan las escrituras y tendrán antes las lecturas más actualizadas primero. 
+    * En el caso de las fichas utilizaríamos los nodos secundarios, esto debido a que son datos que aunque tengan diferentes estructuras no suelen cambiar constantemente así que sería menos probable tener una lectura desincronizada
+    * Pero a la hora de las plazas , al ser unos datos que van a cambiar constantemente debido a que están creados para ellos , utilizaríamos el nodo primario ya que en él se realizan las escrituras y tendrán antes las lecturas más actualizadas primero. 
 
 
 # Ejercicio replica mongo PARTE B
@@ -366,7 +366,7 @@ c220b69db3d98a4d  8277c7cb7b3e  172.28.0.13:3901  []    zona3  953.7 MiB  951.9 
 c931e78431874d4c  5571243f17e0  172.28.0.12:3901  []    zona2  953.7 MiB  951.9 GiB (94.5%)  v2.4.1
 ```
 
-## Paso 3. Buckert, clave y primeros datos
+## Paso 3. Bucket, clave y primeros datos
 * Después de crear el bucket ,las claves de acceso y guardarlas como variables de entorno , instalamos boto3 y subimos los 20 documentos
 
 ```
@@ -460,18 +460,18 @@ Verificados: 25 correctos · 0 corruptos · 0 sen poder descargar
 ## Explicaciones de quórum con los pasos 4 y 5 
 * En las pruebas realizadas observamos como se comportan los nodos según el quórum establecido 
     * En el paso 4 realizamos la parada del nodo 3 , comprobando que aunque uno de los nodos esté caído se puede seguir realizando las operaciones normales de verificación de lectura y escritura , ya que necesita un quórum de dos nodos mínimo participando para llegar a esa mayoría 
-    * En el paso 5 ,al parar el nodo 2 , nos encontramos que al tener 1 solo nodo no puede llegar a la cantidad de quórum necesaria , lo cual nos confirma que son 2 por este mensaje 'Could not reach quorum of 2'. Al volver a inciar los dos nodos faltantes , verificamos que el quórum vuelve recuperarse
+    * En el paso 5 ,al parar el nodo 2 , nos encontramos que al tener 1 solo nodo no puede llegar a la cantidad de quórum necesaria , lo cual nos confirma que son 2 por este mensaje 'Could not reach quorum of 2'. Al volver a iniciar los dos nodos faltantes , verificamos que el quórum vuelve recuperarse
 
 ## Comparaciones de los pasos 4 y 5 
 
 * Aunque los garage, replica set y sentinel utilizan quórum , este se utiliza para diferentes funcionalidades.
-    * En Garage observamos qeu se utiliza para permitir ealizar determinadas operaciones cuando existen suficientes nodos participantes.
+    * En Garage observamos que se utiliza para permitir realizar determinadas operaciones cuando existen suficientes nodos participantes.
     * En mongodb replica set esta mayoría se utiliza principalmente para realizar votaciones para las elecciones de un nuevo nodo primario cuando se produce la caída del primario.
-    * En sentinel el quórum permite captar qeu el nodo primario está caído y que es necesario iniciar el proceso de failover para proceder con la selección de una de las réplicas como nuevo primario.
-    * Aunque en los 3 casos , si solo cae uno de los 3 miembros , los dos restantes conservan esa mayoría , pero con dos no se alcanza en ningún momento el mínimo necesario, impidiendo ralizar operaciones 
+    * En sentinel el quórum permite captar que el nodo primario está caído y que es necesario iniciar el proceso de failover para proceder con la selección de una de las réplicas como nuevo primario.
+    * Aunque en los 3 casos , si solo cae uno de los 3 miembros , los dos restantes conservan esa mayoría , pero con dos no se alcanza en ningún momento el mínimo necesario, impidiendo realizar operaciones 
 
 
-## Paso 6. Perdida de un disco 
+## Paso 6. Pérdida de un disco 
 
 * Comprobar cuanto ocupa los datos del nodo 3
 ```
@@ -541,7 +541,7 @@ e3-garage_garage3_datos
 
 ```
 
-* Al intentar verificar el nodo 3 desde el puerto indicado nos muestra que no puede conectarse , esto debido a que no ha conseguiro arrancar correctamente 
+* Al intentar verificar el nodo 3 desde el puerto indicado nos muestra que no puede conectarse , esto debido a que no ha conseguido arrancar correctamente 
 
 
 ```
@@ -577,12 +577,12 @@ Error: Could not find expected marker file `garage-marker` in data directory `/v
 ## Paso 7 . Preguntas
 
 1. Réplica ×3 frente a erasure coding 4+2, partiendo de 300GB
-    * Tres copias completas (réplica ×3) = 300 X 3 = 900GB, teniendo una tolerancia de fallos la cual puede perder 2 de las 3 copias y seguir teniendo una copia disponiblen ya que en cada copia se guarda una completa de los documentos.
-    * Erasure coding 4+2 = 300 x 6/4 =  450 GB ,  pudiendo perder hasta 2 fragmentos sin perder la dispobilidad de los datos originales
-        * Esto debido a que los datos originales se dividen de 4 fragmentos , asi que si perdemos 2 , existirían 4 fragmentos restantes que nos permitirían reconstruir los datos originales y la distribución de 4+2
+    * Tres copias completas (réplica ×3) = 300 X 3 = 900GB, teniendo una tolerancia de fallos la cual puede perder 2 de las 3 copias y seguir teniendo una copia disponible ya que en cada copia se guarda una completa de los documentos.
+    * Erasure coding 4+2 = 300 x 6/4 =  450 GB ,  pudiendo perder hasta 2 fragmentos sin perder la disponibilidad de los datos originales
+        * Esto debido a que los datos originales se dividen de 4 fragmentos , así que si perdemos 2 , existirían 4 fragmentos restantes que nos permitirían reconstruir los datos originales y la distribución de 4+2
 
 2. El archivo manifesto.json sirve como lista de datos almacenados y permite que se sepa que documentos comparar su sha256 con el del manifesto (verificar) al descargar
-    * Debido a esto no podría localizar errores como documentos faltantes que deberían de estar, contenido descargado incirrecto u objeto no descargados que faltan.
+    * Debido a esto no podría localizar errores como documentos faltantes que deberían de estar, contenido descargado incorrecto u objeto no descargados que faltan.
 
 
-3. Es importante que las copias estén distribuida para poder aislar incidentes de cada unos de los nodos, esto patra que los documentos puedan seguir estando disponibles gracias a las copias restantes.
+3. Es importante que las copias estén distribuidas para poder aislar incidentes de cada unos de los nodos, esto para que los documentos puedan seguir estando disponibles gracias a las copias restantes.
