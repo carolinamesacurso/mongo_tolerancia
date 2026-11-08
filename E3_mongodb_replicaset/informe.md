@@ -96,10 +96,12 @@ rs0 [primary] albergues>
 ```
 
 * Conclusión de pasos anteriores:
-    * Al intentar realizar una operación de escritura en un nodo secundario nos salta un error , ya que los nodo secundarios solo son de lectura 
-    * Por eso al intentar realizar una lectura si que nos muestra un resultado positivo
-    * Al conectarnos al replica set este muestra que por defecto las lecturas van siempre al primario , indicandonos esto con su id correspondiente .
-    * Después de declarar un nuevo nodo secundario como preferente a la hora de las lecturas , este nos muestra un cambio de id a la hora de consultar la misma información
+    1. Al intentar realizar una operación de escritura en un nodo secundario nos salta un error , ya que los nodos secundarios solo son de lectura 
+        * Por eso al intentar realizar una lectura, si que nos muestra un resultado positivo
+    2. Al conectarnos al replica set este muestra que por defecto las lecturas van siempre al primario , indicandonos esto con su id correspondiente .
+    3. Después de declarar un nuevo nodo secundario como preferente a la hora de las lecturas , este nos muestra un cambio de id a la hora de consultar la misma información
+
+* Inconvenientes y ventajas
     * Como inconveniente de leer de lo secundarios tenemos que podemos estar realizando operaciones con datos atrasados 
     * Como ventaja podemos concluir que así quitamos carga de operaciones al nodo primario , repartiendolo entre varios nodos.
 
@@ -112,7 +114,7 @@ rs0 [primary] albergues>
  ✔ Container e3-mongodb-mongo1-1 Paused     
 ```
 
-* Ejecutamos estado.js desde otro nodo cada pocos segundos , estos han tardado aproximadamente menos de 3 segundos en decidir y captar que estaba caido el nodo primario.
+* Ejecutamos estado.js desde otro nodo cada pocos segundos , estos han tardado aproximadamente menos de 3 segundos en captar que estaba caido el nodo primario y decidir uno nuevo.
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/mongo_rs/mongo_tolerancia/E3_mongodb_replicaset$ docker compose pause mongo1
 [+] pause 1/1
@@ -457,16 +459,16 @@ Verificados: 25 correctos · 0 corruptos · 0 sen poder descargar
 
 ## Explicaciones de quórum con los pasos 4 y 5 
 * En las pruebas realizadas observamos como se comportan los nodos según el quórum establecido 
-* En el paso 4 realizamos la parada del nodo 3 , comprobando que aunque uno de los nodos esté caído se puede seguir realizando las operaciones normales de verificación de lectura y escritura , ya que necesita un quórum de dos nodos mínimo participando para llegar a esa mayoría 
-* En el paso 5 ,al parar el nodo 2 , nos encontramos que al tener 1 solo nodo no puede llegar a la cantidad de quórum necesaria , lo cual nos confirma que son 2 por este mensaje 'Could not reach quorum of 2'. Al volver a inciar los dos nodos faltantes , verificamos que el quórum vuelve recuperarse
+    * En el paso 4 realizamos la parada del nodo 3 , comprobando que aunque uno de los nodos esté caído se puede seguir realizando las operaciones normales de verificación de lectura y escritura , ya que necesita un quórum de dos nodos mínimo participando para llegar a esa mayoría 
+    * En el paso 5 ,al parar el nodo 2 , nos encontramos que al tener 1 solo nodo no puede llegar a la cantidad de quórum necesaria , lo cual nos confirma que son 2 por este mensaje 'Could not reach quorum of 2'. Al volver a inciar los dos nodos faltantes , verificamos que el quórum vuelve recuperarse
 
 ## Comparaciones de los pasos 4 y 5 
 
 * Aunque los garage, replica set y sentinel utilizan quórum , este se utiliza para diferentes funcionalidades.
-* En Garage observamos qeu se utiliza para permitir ealizar determinadas operaciones cuando existen suficientes nodos participantes.
-* En mongodb replica set esta mayoría se utiliza principalmente para realizar votaciones para las elecciones de un nuevo nodo primario cuando se produce la caída del primario.
-* En sentinel el quórum permite captar qeu el nodo primario está caído y que es necesario iniciar el proceso de failover para proceder con la selección de una de las réplicas como nuevo primario.
-* Aunque en los 3 casos , si solo cae uno de los 3 miembros , los dos restantes conservan esa mayoría , pero con dos no se alcanza en ningún momento el mínimo necesario, impidiendo ralizar operaciones 
+    * En Garage observamos qeu se utiliza para permitir ealizar determinadas operaciones cuando existen suficientes nodos participantes.
+    * En mongodb replica set esta mayoría se utiliza principalmente para realizar votaciones para las elecciones de un nuevo nodo primario cuando se produce la caída del primario.
+    * En sentinel el quórum permite captar qeu el nodo primario está caído y que es necesario iniciar el proceso de failover para proceder con la selección de una de las réplicas como nuevo primario.
+    * Aunque en los 3 casos , si solo cae uno de los 3 miembros , los dos restantes conservan esa mayoría , pero con dos no se alcanza en ningún momento el mínimo necesario, impidiendo ralizar operaciones 
 
 
 ## Paso 6. Perdida de un disco 
@@ -484,7 +486,7 @@ Status: Downloaded newer image for alpine:latest
 12.8M   /d
 ```
 
-* Comprobar tamaño del volúmen después de arrancarlo despuñes de borrar el volúmen
+* Comprobar tamaño del volúmen al arrancarlo después de borrar el volúmen
 ```
 (.venv) pabilion@LAPTOP-JSKQ1DJ3:~/garage/E3_garage$ docker volume ls
 DRIVER    VOLUME NAME
