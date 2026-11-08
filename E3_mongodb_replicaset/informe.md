@@ -464,7 +464,7 @@ Verificados: 25 correctos · 0 corruptos · 0 sen poder descargar
 
 * Aunque los garage, replica set y sentinel utilizan quórum , este se utiliza para diferentes funcionalidades.
 * En Garage observamos qeu se utiliza para permitir ealizar determinadas operaciones cuando existen suficientes nodos participantes.
-* En mongodb replica set esta mayoría se utiliza principalmente para realizar votaciones para las elecciones de un nuevo nodo primario cuandos e produce la caída del primario.
+* En mongodb replica set esta mayoría se utiliza principalmente para realizar votaciones para las elecciones de un nuevo nodo primario cuando se produce la caída del primario.
 * En sentinel el quórum permite captar qeu el nodo primario está caído y que es necesario iniciar el proceso de failover para proceder con la selección de una de las réplicas como nuevo primario.
 * Aunque en los 3 casos , si solo cae uno de los 3 miembros , los dos restantes conservan esa mayoría , pero con dos no se alcanza en ningún momento el mínimo necesario, impidiendo ralizar operaciones 
 
